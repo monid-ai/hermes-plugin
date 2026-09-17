@@ -1,0 +1,16 @@
+name: monid
+version: 1.0.0
+description: >-
+  OpenRouter for agent tools — discover and run 2,000+ endpoints across 72+
+  providers (web search & scraping, people/company enrichment, social
+  platforms, market data, media generation) through one interface. Bundles
+  the official Monid skill: works through the `monid` CLI out of the box,
+  or the hosted Monid MCP server when configured.
+author: Monid
+manifest_version: 2
+api_version: 1
+license: MIT
+homepage: https://monid.ai
+tags: [data, scraping, enrichment, search, media]
+provides_tools: []
+provides_hooks: []
