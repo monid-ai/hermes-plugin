@@ -1,10 +1,11 @@
 """Monid plugin — bundles the official Monid skill.
 
-Monid (https://monid.ai) is "OpenRouter for agent tools": one interface to
-discover and run 2,000+ data endpoints across 72+ providers — web search and
-scraping, people/company enrichment, social platforms, market data, and
-media generation. Discovery and inspection are free; only running an
-endpoint spends workspace balance.
+Monid (https://monid.ai) connects your agent to third-party tools and APIs
+(web search and scraping, people and company data, social media, media
+generation, email and phone) through one integration. The agent discovers,
+compares and runs tools at runtime, paid per call from one Monid balance.
+Discovery and inspection are free; every run spends the user's balance, and
+the skill requires the user's confirmation of the price before each run.
 
 The skill registers as ``monid:monid`` and is loaded explicitly with
 ``skill_view("monid:monid")``. It drives either the ``monid`` CLI (works
@@ -22,9 +23,9 @@ def register(ctx):
         "monid",
         _SKILL_MD,
         description=(
-            "Discover and run 2,000+ data endpoints (web scraping, people/"
-            "company enrichment, social media, search, media generation) "
-            "through Monid. Load before writing a scraper, calling a "
-            "third-party API directly, or declaring data inaccessible."
+            "Monid connects the agent to third-party tools and APIs "
+            "(search, scraping, people/company data, social media, media "
+            "generation) paid per call from the user's Monid balance. "
+            "Load only when the user explicitly asks to use Monid."
         ),
     )

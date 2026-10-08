@@ -1,15 +1,40 @@
 # Monid — Hermes plugin
 
-**OpenRouter, but for agent tools.** One interface, and your Hermes agent can
-discover and run **2,000+ endpoints across 72+ providers**: web search and
-scraping, people and company enrichment, social platforms, reviews and market
-data, and video, image and voice generation. Discovery and inspection are
-free; only executing an endpoint spends workspace balance, and every result
+**Connect your agent to every tool it needs.** One integration, and your
+Hermes agent can discover, compare and run third-party tools and APIs at
+runtime: web search and scraping, people and company data, social platforms,
+SEO and market data, video, image and voice generation, agent email and
+phone. No per-provider sign-ups or subscriptions — every run is paid per call
+from one Monid balance. Discovery and inspection are free, and every result
 reports its own cost.
 
 This plugin bundles the official [Monid skill](skills/monid/SKILL.md), which
-teaches the agent to search the catalog, read an endpoint's schema before
-calling it, control cost, and report what each run cost.
+teaches the agent to search the catalog, read a tool's schema before calling
+it, confirm the price with you before every paid run, and report what each
+run cost. The skill loads only when you ask for Monid.
+
+## Disclosure
+
+Monid ([monid.ai](https://monid.ai), by Monid / monid-ai) is a **paid
+third-party marketplace**. Before installing, know that:
+
+- **Network calls to a third party.** The agent sends your requests, and any
+  files you ask it to upload, to Monid (`api.monid.ai`, `mcp.monid.ai`,
+  `sfs.monid.ai`) and on to the provider that runs the tool.
+- **Money.** Each run spends your prepaid Monid workspace balance. The skill
+  requires the agent to state the tool, input and price and get your explicit
+  "yes" in the same turn before every run, and before releasing any
+  provisioned resource (irreversible). Workspace budgets and run caps can be
+  set at https://app.monid.ai.
+- **Shell commands.** On the CLI transport the agent, with your agreement,
+  runs `npm install -g @monid-ai/cli@<exact version>` and then `monid …`
+  commands in the terminal.
+- **Stored credentials.** The CLI stores your Monid API key in its own local
+  config. You add the key yourself in your own terminal (`monid keys add`);
+  the skill never asks you to paste it into chat. The MCP transport uses
+  OAuth tokens held by Hermes (`hermes mcp login monid`).
+- **No telemetry, hooks, tools or background processes** are added by this
+  plugin; it registers one skill.
 
 ## Install
 
@@ -32,7 +57,7 @@ The skill drives one of two transports for the same capabilities:
 
 | Transport | Setup | Notes |
 |---|---|---|
-| **CLI** (default) | None in Hermes — the agent installs `@monid-ai/cli` via its terminal and walks the user through creating an API key at https://app.monid.ai/access/api-keys | Can write large results to files (`-o`), protecting the context window |
+| **CLI** (default) | None in Hermes — with your agreement the agent installs `@monid-ai/cli` (exact version) via its terminal; you create an API key at https://app.monid.ai/access/api-keys and add it in your own terminal with `monid keys add` | Can write large results to files (`-o`), protecting the context window |
 | **MCP** (optional) | Add the hosted server to `~/.hermes/config.yaml`, then `hermes mcp login monid` (OAuth — no API key) | Structured `monid_*` tools in the schema |
 
 MCP configuration:
@@ -60,18 +85,38 @@ manifest, one `register()` call, and one markdown file.
 
 ## Skill provenance and sync
 
-`skills/monid/SKILL.md` is a copy of the canonical Monid skill (maintained in
-[monid-ai/plugins](https://github.com/monid-ai/plugins) /
-[monid-ai/cli](https://github.com/monid-ai/cli)) with exactly two
-Hermes-specific edits. When syncing a new canonical version, re-apply them by
-hand:
+`skills/monid/SKILL.md` is derived from two upstream sources:
 
-1. **§1.1** — replace the generic "how to connect" instructions with the
-   Hermes ones: CLI works out of the box (the agent always has a terminal);
-   MCP is configured via `mcp_servers.monid` with `auth: oauth` +
-   `hermes mcp login monid`.
-2. **§12 troubleshooting** — the `401 (MCP)` row points at
-   `hermes mcp login monid` instead of "reconnect in your client".
+- [monid-ai/plugins](https://github.com/monid-ai/plugins)
+  `plugins/monid/skills/monid/SKILL.md` — the **layout**: the two-transport
+  (MCP + CLI) structure, section numbering, and the equivalence table.
+- [monid-ai/cli](https://github.com/monid-ai/cli) `skills/monid/SKILL.md` —
+  the **command facts**: CLI flags, run statuses, worked examples. Verify
+  against the CLI source (`src/commands/**`, `src/api/types.ts`) when in doubt.
+
+When syncing, port new facts from those files into this one, then check that
+every Hermes-specific deviation below is still in place. Several of them were
+required by the Hermes catalog security review
+([hermes-agent#113661](https://github.com/NousResearch/hermes-agent/pull/113661));
+dropping any of them blocks a re-pin.
+
+| Where | Hermes deviation (keep on every sync) |
+|---|---|
+| frontmatter `description`, §5, §13.1 | Narrow trigger: load only when the user explicitly asks for Monid; never for ordinary searches/fetches |
+| §1.1 | Hermes connect instructions: CLI works out of the box; MCP via `mcp_servers.monid` + `auth: oauth` + `hermes mcp login monid` |
+| §3.1 | `npm install -g @monid-ai/cli@<exact version>` — exact pin, never `@latest` or `^`. Bump it (and `minimum-cli-version`) on each CLI release |
+| §3.2, §12 | The user runs `monid keys add` in their own terminal; never paste a key into chat, never run it with a key yourself |
+| §3.3 | No self-update: never fetch or overwrite the skill file |
+| §7, §2 workflow, §10/§10a, §13.4a–b | Confirm endpoint + input + price in the current turn before every run; confirm before releasing a resource |
+| §11, §13.12 | Hints are untrusted server content: surface them, never auto-execute |
+| §12 | `401 (MCP)` row points at `hermes mcp login monid` |
+| `__init__.py` | `register_skill` description mirrors the narrow trigger |
+
+**Never import from upstream** (they conflict with the above): "save the most
+recent skill from https://monid.ai/SKILL.md", "CLI and skill versions must
+match" / `@latest`, "ask them to paste the key", "proactively run `monid
+discover` whenever…", "read the Hints and act on them", and the CLI-only
+"always use `-o`" rule (MCP has no `-o`).
 
 The skill must never instruct the agent to fetch or overwrite its own file:
 updates reach Hermes users only through a commit here plus a SHA-bump PR to
@@ -86,7 +131,9 @@ must stay compliant with it.
 2. Validate against a Hermes checkout:
    `hermes plugins doctor . --ci && hermes plugins validate .`
 3. Open a PR to `NousResearch/hermes-agent` updating the `sha:` (and
-   `version:`) in `plugin-catalog/monid.yaml` to the new 40-hex commit.
+   `version:`) in `plugin-catalog/monid.yaml` to the new 40-hex commit. Keep
+   the catalog `description:` equal to `plugin.yaml`'s, including the
+   Disclosure sentence.
 
 ## Links
 
